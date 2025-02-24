@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+	<OutputType>Exe</OutputType>
+  </PropertyGroup>	
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.2" />
+  </ItemGroup>	
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\core\EventWire.Core\EventWire.Core.csproj" />
+    <ProjectReference Include="..\..\src\serializers\EventWire.Serializers.MessagePack\EventWire.Serializers.MessagePack.csproj" />
+    <ProjectReference Include="..\..\src\server\EventWire.Server\EventWire.Server.csproj" />
+  </ItemGroup>
+</Project>
