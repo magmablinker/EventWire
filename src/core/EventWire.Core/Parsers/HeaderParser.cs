@@ -1,10 +1,10 @@
-using EventWire.Core.Contracts.Parsers;
+using EventWire.Abstractions.Contracts.Parsers;
 
 namespace EventWire.Core.Parsers;
 
 internal sealed class HeaderParser : IHeaderParser
 {
-    public async Task<IDictionary<string, string>> ParseAsync(StreamReader reader,
+    public async Task<IReadOnlyDictionary<string, string>> ParseAsync(StreamReader reader,
         CancellationToken cancellationToken = default)
     {
         var headers = new Dictionary<string, string>();

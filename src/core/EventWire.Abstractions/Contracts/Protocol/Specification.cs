@@ -1,4 +1,4 @@
-namespace EventWire.Core.Protocol;
+namespace EventWire.Abstractions.Contracts.Protocol;
 
 public static class Specification
 {

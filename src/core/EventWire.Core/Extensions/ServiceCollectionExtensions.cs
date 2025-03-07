@@ -1,10 +1,9 @@
 using EventWire.Abstractions.Contracts.Builders;
-using EventWire.Abstractions.Contracts.Client;
 using EventWire.Abstractions.Contracts.Options;
+using EventWire.Abstractions.Contracts.Parsers;
 using EventWire.Abstractions.Contracts.Serializers;
 using EventWire.Core.Builders;
 using EventWire.Core.Contracts.Factories;
-using EventWire.Core.Contracts.Parsers;
 using EventWire.Core.Contracts.Services;
 using EventWire.Core.Factories;
 using EventWire.Core.Parsers;
@@ -29,8 +28,7 @@ public static class ServiceCollectionExtensions
             .AddSingleton<IHeaderParser, HeaderParser>()
             .AddScoped<IPipelineExecutorService, PipelineExecutorService>()
             .AddScoped(typeof(IMessageHandlerService<,>), typeof(MessageHandlerService<,>))
-            .AddScoped(typeof(IHandlerPipe<,>), typeof(HandlerPipe<,>))
-            .AddScoped<IMessageService, MessageService>();
+            .AddScoped(typeof(IHandlerPipe<,>), typeof(HandlerPipe<,>));
 
         return new EventWireBuilder(services);
     }

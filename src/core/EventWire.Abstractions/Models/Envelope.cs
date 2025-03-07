@@ -1,9 +1,9 @@
 using System.Text;
-using EventWire.Core.Protocol;
+using EventWire.Abstractions.Contracts.Protocol;
 
-namespace EventWire.Core.Models;
+namespace EventWire.Abstractions.Models;
 
-internal sealed class Envelope
+public sealed class Envelope
 {
     public required IDictionary<string, string> Headers { get; init; }
     public required string? Payload { get; init; }

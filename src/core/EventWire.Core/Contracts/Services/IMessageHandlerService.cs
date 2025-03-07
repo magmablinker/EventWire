@@ -1,5 +1,5 @@
 using EventWire.Abstractions.Contracts.Handlers;
-using EventWire.Core.Models;
+using EventWire.Abstractions.Models;
 
 namespace EventWire.Core.Contracts.Services;
 

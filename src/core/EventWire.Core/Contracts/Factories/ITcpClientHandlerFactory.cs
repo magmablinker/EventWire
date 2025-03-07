@@ -1,5 +1,5 @@
 using System.Net.Sockets;
-using EventWire.Core.Contracts.Handlers;
+using EventWire.Abstractions.Contracts.Handlers;
 
 namespace EventWire.Core.Contracts.Factories;
 

@@ -16,6 +16,7 @@ public sealed class TcpOptions
     public string ServerName { get; set; } = null!;
     public string CertPath { get; set; } = null!;
     public string CertPassword { get; set; } = null!;
+    public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(30);
     public Lazy<X509Certificate2> Certificate;
 
     private X509Certificate2 GetCert() => new(CertPath, CertPassword, X509KeyStorageFlags.MachineKeySet);
