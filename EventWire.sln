@@ -23,6 +23,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "serializers", "serializers"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventWire.Serializers.MessagePack", "src\serializers\EventWire.Serializers.MessagePack\EventWire.Serializers.MessagePack.csproj", "{6E58C5C9-C164-44F6-8833-89BEEF5DD782}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventWire.Serializers.ProtoBuf", "src\serializers\EventWire.Serializers.ProtoBuf\EventWire.Serializers.ProtoBuf.csproj", "{31848CB9-3F2D-4F5D-A358-AA9F079FCCA0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -49,6 +51,10 @@ Global
 		{6E58C5C9-C164-44F6-8833-89BEEF5DD782}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6E58C5C9-C164-44F6-8833-89BEEF5DD782}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6E58C5C9-C164-44F6-8833-89BEEF5DD782}.Release|Any CPU.Build.0 = Release|Any CPU
+		{31848CB9-3F2D-4F5D-A358-AA9F079FCCA0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{31848CB9-3F2D-4F5D-A358-AA9F079FCCA0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{31848CB9-3F2D-4F5D-A358-AA9F079FCCA0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{31848CB9-3F2D-4F5D-A358-AA9F079FCCA0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -62,6 +68,7 @@ Global
 		{6CCA4063-AA7C-46E2-818D-96F344555446} = {D662C200-64FA-454B-9648-7BBB5AB212FF}
 		{7BC5CEB4-AE43-4F82-A88D-6402AD7D7AC6} = {0436B8AC-A1CD-4085-A662-A98435AA5C73}
 		{6E58C5C9-C164-44F6-8833-89BEEF5DD782} = {7BC5CEB4-AE43-4F82-A88D-6402AD7D7AC6}
+		{31848CB9-3F2D-4F5D-A358-AA9F079FCCA0} = {7BC5CEB4-AE43-4F82-A88D-6402AD7D7AC6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {2F768C2B-5940-4676-A48D-91C6EB43381E}

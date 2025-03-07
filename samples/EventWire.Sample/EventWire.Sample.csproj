@@ -11,6 +11,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\core\EventWire.Core\EventWire.Core.csproj" />
     <ProjectReference Include="..\..\src\serializers\EventWire.Serializers.MessagePack\EventWire.Serializers.MessagePack.csproj" />
+    <ProjectReference Include="..\..\src\serializers\EventWire.Serializers.ProtoBuf\EventWire.Serializers.ProtoBuf.csproj" />
     <ProjectReference Include="..\..\src\server\EventWire.Server\EventWire.Server.csproj" />
   </ItemGroup>
 </Project>

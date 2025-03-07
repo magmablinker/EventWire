@@ -277,8 +277,8 @@ public abstract class TcpHandlerBase : ITcpHandler
                         await ProcessMessageAsync(envelope, cancellationToken);
                         sw.Stop();
 
-                        Logger.LogInformation("Handling took {elapsed}ms",
-                            Math.Round(sw.Elapsed.TotalMilliseconds, MidpointRounding.ToEven));
+                        Logger.LogInformation("Handling took {elapsed}μs",
+                            Math.Round(sw.Elapsed.TotalMicroseconds, MidpointRounding.ToEven));
                     }
                     catch (Exception e)
                     {

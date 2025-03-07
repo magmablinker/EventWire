@@ -2,6 +2,6 @@ namespace EventWire.Abstractions.Models;
 
 public sealed class Headers
 {
-    public required string ContentType { get; init; }
+    public string ContentType { get; init; } = "application/json";
     public string? ApiKey { get; init; }
 }

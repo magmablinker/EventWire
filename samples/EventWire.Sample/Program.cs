@@ -5,12 +5,15 @@ using EventWire.Core.Extensions;
 using EventWire.Sample;
 using EventWire.Sample.Messages;
 using EventWire.Serializers.MessagePack.Extensions;
+using EventWire.Serializers.ProtoBuf.Extensions;
 using EventWire.Server.Contracts.Registry;
 using EventWire.Server.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 using var host = Host.CreateDefaultBuilder()
+    .ConfigureLogging(builder => builder.SetMinimumLevel(LogLevel.Debug))
     .ConfigureServices(services =>
     {
         services.AddEventWire(tcpOptions =>
@@ -24,6 +27,7 @@ using var host = Host.CreateDefaultBuilder()
             })
             .AddMessageHandlers(AssemblyProvider.Current)
             .AddMessagePack()
+            .AddProtoBuf()
             .AddServer();
     })
     .Build();
@@ -42,12 +46,21 @@ await using (var scope = host.Services.CreateAsyncScope())
         .Select(async i => await messageClient.PublishAsync(new TestMessage { Example = $"[{i}] Im a message" },
             new Headers
             {
-                ContentType = "application/json",
                 ApiKey = "test",
             }))
         .ToArray();
-
     await Task.WhenAll(tasks);
+
+    var tasks2 = Enumerable.Range(0, 200)
+        .Select(async i => await messageClient.PublishAsync(new TestProtoBufMessage { Example = $"[{i}] Im a protobuf message" },
+            new Headers
+            {
+                ContentType = "application/x-protobuf",
+                ApiKey = "test",
+            }))
+        .ToArray();
+    await Task.WhenAll(tasks2);
+
     await Task.Delay(TimeSpan.FromSeconds(2));
 
     var clients = registry.GetAll();
