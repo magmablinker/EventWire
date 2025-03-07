@@ -347,3 +347,6 @@ screenshots
 # ignore angular cache folder
 .angular/
 tests/E2E/*.xml
+
+EventWire.sln.DotSettings 
+.editorconfig
