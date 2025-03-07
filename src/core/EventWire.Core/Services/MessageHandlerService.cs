@@ -1,9 +1,9 @@
 using EventWire.Abstractions.Contracts.Handlers;
+using EventWire.Abstractions.Contracts.Protocol;
+using EventWire.Abstractions.Models;
 using EventWire.Core.Contracts.Factories;
 using EventWire.Core.Contracts.Services;
-using EventWire.Core.Models;
 using EventWire.Core.Pipes;
-using EventWire.Core.Protocol;
 
 namespace EventWire.Core.Services;
 

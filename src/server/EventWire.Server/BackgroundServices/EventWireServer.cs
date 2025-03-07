@@ -1,7 +1,9 @@
 ﻿using System.Net.Sockets;
 using EventWire.Abstractions.Contracts.Options;
+using EventWire.Abstractions.Contracts.Parsers;
 using EventWire.Core.Contracts.Factories;
-using EventWire.Core.Contracts.Handlers;
+using EventWire.Server.Contracts.Registry;
+using EventWire.Server.Handlers;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -9,17 +11,28 @@ namespace EventWire.Server.BackgroundServices;
 
 internal sealed class EventWireServer : BackgroundService
 {
-    private readonly List<ITcpClientHandler> _clients = [];
-    private readonly ITcpClientHandlerFactory _tcpClientHandlerFactory;
+    private readonly IHeaderParser _headerParser;
+    private readonly IPayloadSerializerFactory _serializerFactory;
+    private readonly IHandlerRegistry _registry;
+    private readonly IServiceProvider _serviceProvider;
     private readonly TcpOptions _tcpOptions;
+    private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<EventWireServer> _logger;
 
-    public EventWireServer(ITcpClientHandlerFactory tcpClientHandlerFactory,
+    public EventWireServer(IHeaderParser headerParser,
+        IPayloadSerializerFactory serializerFactory,
+        IHandlerRegistry registry,
+        IServiceProvider serviceProvider,
         TcpOptions tcpOptions,
+        ILoggerFactory loggerFactory,
         ILogger<EventWireServer> logger)
     {
-        _tcpClientHandlerFactory = tcpClientHandlerFactory;
+        _headerParser = headerParser;
+        _serializerFactory = serializerFactory;
+        _registry = registry;
+        _serviceProvider = serviceProvider;
         _tcpOptions = tcpOptions;
+        _loggerFactory = loggerFactory;
         _logger = logger;
     }
 
@@ -41,18 +54,19 @@ internal sealed class EventWireServer : BackgroundService
                         continue;
                     }
 
-                    var handler = _tcpClientHandlerFactory.Create(await tcpListener.AcceptTcpClientAsync(stoppingToken));
-                    handler.Start();
+                    var handler = new TcpServerHandler(await tcpListener.AcceptTcpClientAsync(stoppingToken),
+                        _headerParser,
+                        _serializerFactory,
+                        _serviceProvider,
+                        _tcpOptions,
+                        _loggerFactory.CreateLogger<TcpServerHandler>());
+                    await handler.ConnectAsync(stoppingToken);
 
-                    _clients.Add(handler);
+                    _registry.Register(handler);
                 }
                 catch (Exception e)
                 {
                     _logger.LogError(e, "Failed to accept tcp client");
-                }
-                finally
-                {
-                    await CleanupClientsAsync();
                 }
             }
         }
@@ -67,16 +81,6 @@ internal sealed class EventWireServer : BackgroundService
         finally
         {
             tcpListener.Stop();
-        }
-    }
-
-    private async Task CleanupClientsAsync()
-    {
-        var completedClients = _clients.Where(client => client.IsCompleted).ToList();
-        foreach (var client in completedClients)
-        {
-            await client.DisposeAsync();
-            _clients.Remove(client);
         }
     }
 }
