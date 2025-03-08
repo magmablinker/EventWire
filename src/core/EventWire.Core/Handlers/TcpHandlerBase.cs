@@ -13,7 +13,6 @@ using EventWire.Core.Contracts.Factories;
 using EventWire.Core.Contracts.Services;
 using EventWire.Core.Exceptions;
 using EventWire.Core.Extensions;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace EventWire.Core.Handlers;
@@ -22,9 +21,12 @@ public abstract class TcpHandlerBase : ITcpHandler
 {
     private static readonly JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true };
 
+    private readonly TcpClient _tcpClient;
     private readonly IHeaderParser _headerParser;
     private readonly IPayloadSerializerFactory _serializerFactory;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IEnvelopeProcessorService _envelopeProcessorService;
+    private readonly ILogger _logger;
+
     private readonly SemaphoreSlim _lock = new(1, 1);
     private readonly SemaphoreSlim _connectLock = new(1, 1);
 
@@ -33,30 +35,28 @@ public abstract class TcpHandlerBase : ITcpHandler
     private DateTime _lastMessageTime;
     private CancellationTokenSource _handlerCts = new();
     private CancellationTokenSource? _heartbeatCancellationTokenSource;
+    private bool _disposed;
 
-    protected readonly TcpClient TcpClient;
     protected readonly TcpOptions TcpOptions;
-    protected readonly ILogger Logger;
-    protected bool Disposed;
 
     protected TcpHandlerBase(
         TcpClient tcpClient,
         IHeaderParser headerParser,
         IPayloadSerializerFactory serializerFactory,
-        IServiceProvider serviceProvider,
+        IEnvelopeProcessorService envelopeProcessorService,
         TcpOptions tcpOptions,
         ILogger logger)
     {
-        TcpClient = tcpClient;
+        _tcpClient = tcpClient;
         _headerParser = headerParser;
         _serializerFactory = serializerFactory;
-        _serviceProvider = serviceProvider;
-        Logger = logger;
+        _envelopeProcessorService = envelopeProcessorService;
+        _logger = logger;
         TcpOptions = tcpOptions;
         _lastMessageTime = DateTime.UtcNow;
     }
 
-    public bool IsCompleted => !TcpClient.Connected ||
+    public bool IsCompleted => !_tcpClient.Connected ||
                                _handlerTask is { IsCanceled: true }
                                    or { IsCompleted: true }
                                    or { IsCompletedSuccessfully: true }
@@ -67,7 +67,7 @@ public abstract class TcpHandlerBase : ITcpHandler
         try
         {
             await _connectLock.WaitAsync(cancellationToken);
-            if (TcpClient is { Connected: true } && _sslStream is not null)
+            if (_tcpClient is { Connected: true } && _sslStream is not null)
                 return;
 
             await _handlerCts.CancelAsync();
@@ -77,10 +77,10 @@ public abstract class TcpHandlerBase : ITcpHandler
 
             await (_sslStream?.DisposeAsync() ?? ValueTask.CompletedTask);
 
-            if (TcpClient is { Connected: false })
-                await TcpClient.ConnectAsync(TcpOptions.IpAddress, TcpOptions.Port, cancellationToken);
+            if (_tcpClient is { Connected: false })
+                await _tcpClient.ConnectAsync(TcpOptions.IpAddress, TcpOptions.Port, cancellationToken);
 
-            _sslStream = new(TcpClient.GetStream(), false, ValidateCertificate);
+            _sslStream = new(_tcpClient.GetStream(), false, ValidateCertificate);
             await AuthenticateAsync(_sslStream, cancellationToken);
 
             _handlerCts = new();
@@ -91,7 +91,7 @@ public abstract class TcpHandlerBase : ITcpHandler
         }
         catch (Exception e)
         {
-            Logger.LogError(e, "Failed to connect to TCP");
+            _logger.LogError(e, "Failed to connect to TCP");
         }
         finally
         {
@@ -105,7 +105,7 @@ public abstract class TcpHandlerBase : ITcpHandler
     public async Task PublishAsync<TMessage>(TMessage message, Headers headers, CancellationToken cancellationToken = default)
         where TMessage : notnull
     {
-        ObjectDisposedException.ThrowIf(Disposed, nameof(TcpClientHandler));
+        ObjectDisposedException.ThrowIf(_disposed, nameof(TcpClientHandler));
 
         try
         {
@@ -127,12 +127,12 @@ public abstract class TcpHandlerBase : ITcpHandler
             if (headers.ApiKey is not null)
                 envelope.Headers[Header.ApiKey] = headers.ApiKey;
 
-            if(!await SendMessageInternalAsync(envelope, cancellationToken))
-                Logger.LogWarning("Failed to publish envelope with type '{type}' and payload '{payload}'", envelope.Headers[Header.ContentType], envelope.Payload);
+            if(!await PublishInternalAsync(envelope, cancellationToken))
+                _logger.LogWarning("Failed to publish envelope with type '{type}' and payload '{payload}'", envelope.Headers[Header.ContentType], envelope.Payload);
         }
         catch (Exception e)
         {
-            Logger.LogError(e, "Failed to publish message");
+            _logger.LogError(e, "Failed to publish message");
             throw;
         }
     }
@@ -150,7 +150,7 @@ public abstract class TcpHandlerBase : ITcpHandler
     /// <summary>
     /// Sends a message with the specified payload and headers
     /// </summary>
-    protected async Task<bool> SendMessageInternalAsync(
+    private async Task<bool> PublishInternalAsync(
         Envelope envelope,
         CancellationToken cancellationToken)
     {
@@ -158,7 +158,7 @@ public abstract class TcpHandlerBase : ITcpHandler
 
         if (_sslStream is null)
         {
-            Logger.LogError("Cannot send message - SSL stream not initialized");
+            _logger.LogError("Cannot send message - SSL stream not initialized");
             return false;
         }
 
@@ -179,7 +179,7 @@ public abstract class TcpHandlerBase : ITcpHandler
 
             if (envelope.Payload is not null)
             {
-                Logger.LogInformation(
+                _logger.LogDebug(
                     """
                     =====================================
                     Sent message {payloadType}
@@ -197,7 +197,7 @@ public abstract class TcpHandlerBase : ITcpHandler
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to send message");
+            _logger.LogError(ex, "Failed to send message");
             return false;
         }
     }
@@ -214,14 +214,20 @@ public abstract class TcpHandlerBase : ITcpHandler
                 using var streamReader = new StreamReader(_sslStream, Encoding.UTF8, leaveOpen: true);
 
                 _lastMessageTime = DateTime.UtcNow;
-                while (!cancellationToken.IsCancellationRequested && TcpClient.Connected)
+                while (!cancellationToken.IsCancellationRequested && _tcpClient.Connected)
                 {
                     try
                     {
                         if (DateTime.UtcNow - _lastMessageTime > TcpOptions.Timeout)
                         {
-                            Logger.LogWarning("Connection timed out, disconnecting...");
-                            break;
+                            _logger.LogWarning("Connection timed out, trying to reconnect...");
+                            await ConnectAsync(cancellationToken);
+
+                            if(!_tcpClient.Connected)
+                            {
+                                _logger.LogWarning("Reconnect failed, disconnecting...");
+                                break;
+                            }
                         }
 
                         var sw = Stopwatch.StartNew();
@@ -238,13 +244,13 @@ public abstract class TcpHandlerBase : ITcpHandler
 
                         if (headers.ContainsKey(Header.Ping))
                         {
-                            Logger.LogDebug("Ping received");
+                            _logger.LogDebug("Ping received");
                             continue;
                         }
 
                         if (!ValidateHeaders(headers))
                         {
-                            Logger.LogInformation("Could not validate headers");
+                            _logger.LogError("Could not validate headers");
                             continue;
                         }
 
@@ -260,7 +266,7 @@ public abstract class TcpHandlerBase : ITcpHandler
                         };
 
                         sw.Stop();
-                        Logger.LogInformation(
+                        _logger.LogDebug(
                             """
                             =====================================
                             Received message {payloadType}
@@ -273,45 +279,18 @@ public abstract class TcpHandlerBase : ITcpHandler
                             JsonSerializer.Serialize(envelope, _jsonSerializerOptions)
                         );
 
-                        sw.Start();
-                        await ProcessMessageAsync(envelope, cancellationToken);
-                        sw.Stop();
-
-                        Logger.LogInformation("Handling took {elapsed}μs",
-                            Math.Round(sw.Elapsed.TotalMicroseconds, MidpointRounding.ToEven));
+                        await _envelopeProcessorService.EnqueueAsync(envelope, cancellationToken);
                     }
                     catch (Exception e)
                     {
-                        Logger.LogError(e, "Failed to process message");
+                        _logger.LogError(e, "Failed to process message");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Error in TCP handler");
+                _logger.LogError(ex, "Error in TCP handler");
             }
-        }
-    }
-
-    /// <summary>
-    /// Processes an incoming message using the appropriate handler
-    /// </summary>
-    private async Task ProcessMessageAsync(Envelope envelope, CancellationToken cancellationToken)
-    {
-        try
-        {
-            await using var scope = _serviceProvider.CreateAsyncScope();
-            var payloadType = Type.GetType(envelope.Headers[Header.PayloadType]) ??
-                              throw new InvalidOperationException($"Unable to create type '{envelope.Headers[Header.PayloadType]}'");
-
-            var handlerType = typeof(IMessageHandler<>).MakeGenericType(payloadType);
-            var handlerServiceType = typeof(IMessageHandlerService<,>).MakeGenericType(payloadType, handlerType);
-            var handlerService = (IMessageHandlerService)scope.ServiceProvider.GetRequiredService(handlerServiceType);
-            await handlerService.HandleAsync(envelope, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error processing message");
         }
     }
 
@@ -340,17 +319,17 @@ public abstract class TcpHandlerBase : ITcpHandler
                         Payload = null,
                     };
 
-                    await SendMessageInternalAsync(envelope, cancellationToken);
+                    await PublishInternalAsync(envelope, cancellationToken);
                 }
                 catch (Exception e)
                 {
-                    Logger.LogError(e, "Failed to send heartbeat");
+                    _logger.LogError(e, "Failed to send heartbeat");
                 }
             }
         }
         catch (OperationCanceledException)
         {
-            Logger.LogInformation("{sendHeartbeatsAsync} has been cancelled", nameof(SendHeartbeatsAsync));
+            _logger.LogInformation("{sendHeartbeatsAsync} has been cancelled", nameof(SendHeartbeatsAsync));
         }
         catch (Exception e)
         {
@@ -363,13 +342,13 @@ public abstract class TcpHandlerBase : ITcpHandler
         if (sslPolicyErrors == SslPolicyErrors.None)
             return true;
 
-        Logger.LogError("Certificate error '{sslPolicyErrors}'", sslPolicyErrors);
+        _logger.LogError("Certificate error '{sslPolicyErrors}'", sslPolicyErrors);
         return false;
     }
 
     public virtual async ValueTask DisposeAsync()
     {
-        if (Disposed)
+        if (_disposed)
             return;
 
         await (_heartbeatCancellationTokenSource?.CancelAsync() ?? Task.CompletedTask);
@@ -381,7 +360,7 @@ public abstract class TcpHandlerBase : ITcpHandler
         _heartbeatCancellationTokenSource?.Dispose();
         _handlerCts.Dispose();
         await (_sslStream?.DisposeAsync() ?? ValueTask.CompletedTask);
-        TcpClient.Close();
-        Disposed = true;
+        _tcpClient.Close();
+        _disposed = true;
     }
 }

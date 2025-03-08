@@ -2,6 +2,7 @@
 using EventWire.Abstractions.Contracts.Options;
 using EventWire.Abstractions.Contracts.Parsers;
 using EventWire.Core.Contracts.Factories;
+using EventWire.Core.Contracts.Services;
 using EventWire.Server.Contracts.Registry;
 using EventWire.Server.Handlers;
 using Microsoft.Extensions.Hosting;
@@ -14,7 +15,7 @@ internal sealed class EventWireServer : BackgroundService
     private readonly IHeaderParser _headerParser;
     private readonly IPayloadSerializerFactory _serializerFactory;
     private readonly IHandlerRegistry _registry;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IEnvelopeProcessorService _envelopeProcessorService;
     private readonly TcpOptions _tcpOptions;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger<EventWireServer> _logger;
@@ -22,7 +23,7 @@ internal sealed class EventWireServer : BackgroundService
     public EventWireServer(IHeaderParser headerParser,
         IPayloadSerializerFactory serializerFactory,
         IHandlerRegistry registry,
-        IServiceProvider serviceProvider,
+        IEnvelopeProcessorService envelopeProcessorService,
         TcpOptions tcpOptions,
         ILoggerFactory loggerFactory,
         ILogger<EventWireServer> logger)
@@ -30,7 +31,7 @@ internal sealed class EventWireServer : BackgroundService
         _headerParser = headerParser;
         _serializerFactory = serializerFactory;
         _registry = registry;
-        _serviceProvider = serviceProvider;
+        _envelopeProcessorService = envelopeProcessorService;
         _tcpOptions = tcpOptions;
         _loggerFactory = loggerFactory;
         _logger = logger;
@@ -57,7 +58,7 @@ internal sealed class EventWireServer : BackgroundService
                     var handler = new TcpServerHandler(await tcpListener.AcceptTcpClientAsync(stoppingToken),
                         _headerParser,
                         _serializerFactory,
-                        _serviceProvider,
+                        _envelopeProcessorService,
                         _tcpOptions,
                         _loggerFactory.CreateLogger<TcpServerHandler>());
                     await handler.ConnectAsync(stoppingToken);

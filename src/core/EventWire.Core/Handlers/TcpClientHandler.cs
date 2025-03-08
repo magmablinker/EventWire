@@ -6,6 +6,7 @@ using EventWire.Abstractions.Contracts.Handlers;
 using EventWire.Abstractions.Contracts.Options;
 using EventWire.Abstractions.Contracts.Parsers;
 using EventWire.Core.Contracts.Factories;
+using EventWire.Core.Contracts.Services;
 using Microsoft.Extensions.Logging;
 
 namespace EventWire.Core.Handlers;
@@ -16,10 +17,10 @@ internal sealed class TcpClientHandler : TcpHandlerBase, ITcpClientHandler
         TcpClient tcpClient,
         IHeaderParser headerParser,
         IPayloadSerializerFactory serializerFactory,
-        IServiceProvider serviceProvider,
+        IEnvelopeProcessorService envelopeProcessorService,
         TcpOptions options,
         ILogger<TcpClientHandler> logger)
-        :  base(tcpClient, headerParser, serializerFactory, serviceProvider, options, logger)
+        :  base(tcpClient, headerParser, serializerFactory, envelopeProcessorService, options, logger)
     {
     }
 

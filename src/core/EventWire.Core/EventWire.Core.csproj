@@ -5,4 +5,7 @@
   <ItemGroup>
     <ProjectReference Include="..\EventWire.Abstractions\EventWire.Abstractions.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Workers\" />
+  </ItemGroup>
 </Project>

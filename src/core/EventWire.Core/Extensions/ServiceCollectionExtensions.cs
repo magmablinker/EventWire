@@ -26,6 +26,7 @@ public static class ServiceCollectionExtensions
             .AddSingleton<IPayloadSerializerFactory, PayloadSerializerFactory>()
             .AddSingleton<ITcpClientHandlerFactory, TcpClientHandlerFactory>()
             .AddSingleton<IHeaderParser, HeaderParser>()
+            .AddSingleton<IEnvelopeProcessorService, EnvelopeProcessorService>()
             .AddScoped<IPipelineExecutorService, PipelineExecutorService>()
             .AddScoped(typeof(IMessageHandlerService<,>), typeof(MessageHandlerService<,>))
             .AddScoped(typeof(IHandlerPipe<,>), typeof(HandlerPipe<,>));
