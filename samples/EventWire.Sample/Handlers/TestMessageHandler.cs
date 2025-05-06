@@ -14,9 +14,9 @@ internal sealed class TestMessageHandler : IMessageHandler<TestMessage>
         _logger = logger;
     }
 
-    public Task HandleAsync(MessageHandlerContext<TestMessage> context, CancellationToken cancellationToken = default)
+    public ValueTask HandleAsync(MessageHandlerContext<TestMessage> context, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Received message '{message}'", context.Payload.Example);
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }

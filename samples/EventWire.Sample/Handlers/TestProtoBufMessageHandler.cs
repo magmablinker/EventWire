@@ -14,9 +14,9 @@ internal sealed class TestProtoBufMessageHandler : IMessageHandler<TestProtoBufM
         _logger = logger;
     }
 
-    public Task HandleAsync(MessageHandlerContext<TestProtoBufMessage> context, CancellationToken cancellationToken = default)
+    public ValueTask HandleAsync(MessageHandlerContext<TestProtoBufMessage> context, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Received message '{message}'", context.Payload.Example);
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }
