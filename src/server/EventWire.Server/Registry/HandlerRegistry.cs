@@ -39,7 +39,7 @@ internal sealed class HandlerRegistry : IHandlerRegistry
 
     public IReadOnlyList<GuidHandler> GetAll() => _handlers.Select(kvp => new GuidHandler(kvp.Key, kvp.Value)).ToList();
 
-    public ITcpHandler? Find(Guid id) => _handlers.ContainsKey(id) ? _handlers[id] : null;
+    public ITcpHandler? Find(Guid id) => _handlers.GetValueOrDefault(id);
 
     private async Task CleanupClientsAsync()
     {

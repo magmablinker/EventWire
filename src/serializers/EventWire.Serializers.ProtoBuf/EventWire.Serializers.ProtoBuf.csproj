@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <ItemGroup>
-      <ProjectReference Include="..\..\core\EventWire.Abstractions\EventWire.Abstractions.csproj" />
-    </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\core\EventWire.Abstractions\EventWire.Abstractions.csproj" />
+  </ItemGroup>
 
-    <ItemGroup>
-      <PackageReference Include="protobuf-net" Version="3.2.46" />
-    </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="protobuf-net" Version="3.2.46" />
+  </ItemGroup>
 
 </Project>
